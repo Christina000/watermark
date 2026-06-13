@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>验货水印工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+    background: #f2f2f7;
+    color: #1c1c1e;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  header {
+    background: #fff;
+    padding: 16px 20px 14px;
+    border-bottom: 0.5px solid #e0e0e5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header p { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+
+  .section {
+    background: #fff;
+    border-radius: 12px;
+    margin: 16px 16px 0;
+    overflow: hidden;
+  }
+
+  .upload-zone {
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: #fff;
+    border: 2px dashed #c7c7cc;
+    border-radius: 12px;
+    margin: 16px 16px 0;
+    transition: background 0.15s;
+    -webkit-appearance: none;
+  }
+  .upload-zone:active { background: #f2f2f7; }
+  .upload-zone .icon { font-size: 48px; margin-bottom: 10px; }
+  .upload-zone .title { font-size: 16px; font-weight: 600; color: #1c1c1e; margin-bottom: 4px; }
+  .upload-zone .sub { font-size: 13px; color: #8e8e93; }
+  #fileInput { display: none; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    border-bottom: 0.5px solid #f2f2f7;
+  }
+  .row:last-child { border-bottom: none; }
+  .row label { font-size: 15px; color: #1c1c1e; }
+  .row .val { font-size: 14px; color: #8e8e93; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 140px;
+    height: 4px;
+    background: #e0e0e5;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 0.5px solid #c7c7cc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  }
+  input[type=color] {
+    -webkit-appearance: none;
+    width: 40px; height: 30px;
+    border: 0.5px solid #c7c7cc;
+    border-radius: 8px;
+    padding: 2px;
+    background: none;
+    cursor: pointer;
+  }
+  input[type=text] {
+    border: none;
+    outline: none;
+    font-size: 15px;
+    color: #1c1c1e;
+    text-align: right;
+    background: transparent;
+    width: 180px;
+  }
+  input[type=text]::placeholder { color: #c7c7cc; }
+
+  .preview-wrap {
+    margin: 16px 16px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
+    background: #000;
+  }
+  .preview-wrap canvas { width: 100%; display: block; }
+
+  .btn {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 14px 16px 0;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    -webkit-appearance: none;
+  }
+  .btn-primary { background: #007aff; color: #fff; }
+  .btn-primary:active { background: #0062cc; }
+  .btn-secondary { background: #fff; color: #007aff; border: 0.5px solid #c7c7cc; }
+  .btn-secondary:active { background: #f2f2f7; }
+  .btn:disabled { opacity: 0.5; }
+
+  .note {
+    font-size: 12px;
+    color: #8e8e93;
+    text-align: center;
+    margin-top: 10px;
+    padding: 0 20px;
+    line-height: 1.6;
+  }
+
+  .section-title {
+    font-size: 12px;
+    color: #8e8e93;
+    font-weight: 500;
+    padding: 18px 16px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #e8f4ff;
+    color: #007aff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>验货水印工具 <span class="badge">本地处理</span></h1>
+  <p>照片不上传，时间取自文件拍摄时间</p>
+</header>
+
+<div class="upload-zone" id="uploadZone">
+  <div class="icon">📷</div>
+  <div class="title">点击选择照片</div>
+  <div class="sub">支持多选，JPG / PNG / HEIC</div>
+  <input type="file" id="fileInput" accept="image/*" multiple>
+</div>
+
+<p class="section-title">水印设置</p>
+
+<div class="section">
+  <div class="row">
+    <label>自定义前缀</label>
+    <input type="text" id="prefix" placeholder="如：深圳A工厂">
+  </div>
+  <div class="row">
+    <label>文字颜色</label>
+    <input type="color" id="textColor" value="#ffffff">
+  </div>
+  <div class="row">
+    <label>背景颜色</label>
+    <input type="color" id="bgColor" value="#000000">
+  </div>
+  <div class="row">
+    <label>背景透明度</label>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="0.45">
+      <span class="val" id="opacityVal">45%</span>
+    </div>
+  </div>
+  <div class="row">
+    <label>字体大小</label>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input type="range" id="fontSize" min="12" max="80" step="2" value="36">
+      <span class="val" id="fontSizeVal">36</span>
+    </div>
+  </div>
+</div>
+
+<div class="preview-wrap" id="previewWrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="actionArea" style="display:none;">
+  <button class="btn btn-primary" id="btnDl">💾 保存带水印照片</button>
+  <button class="btn btn-secondary" id="btnRedo">重新选图</button>
+</div>
+
+<p class="note" id="batchNote"></p>
+
+<p class="note" style="margin-top:20px;">
+  💡 iPhone 建议：用 Safari 打开此页面，点右下角分享 → 「存储到主屏幕」，即可像 App 一样使用
+</p>
+
+<script>
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const previewWrap = document.getElementById('previewWrap');
+const actionArea = document.getElementById('actionArea');
+const batchNote = document.getElementById('batchNote');
+
+let currentFiles = [];
+
+document.getElementById('bgOpacity').addEventListener('input', function() {
+  document.getElementById('opacityVal').textContent = Math.round(this.value * 100) + '%';
+  redraw();
+});
+document.getElementById('fontSize').addEventListener('input', function() {
+  document.getElementById('fontSizeVal').textContent = this.value;
+  redraw();
+});
+['textColor','bgColor','prefix'].forEach(id => {
+  document.getElementById(id).addEventListener('input', redraw);
+});
+
+function redraw() {
+  if (currentFiles.length) loadAndDraw(currentFiles[0]);
+}
+
+function getTimeStr(file) {
+  const d = file && file.lastModified ? new Date(file.lastModified) : new Date();
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function applyWatermark(cvs, cx, img, file) {
+  cvs.width = img.naturalWidth;
+  cvs.height = img.naturalHeight;
+  cx.drawImage(img, 0, 0);
+
+  const prefix = document.getElementById('prefix').value.trim();
+  const timeStr = getTimeStr(file);
+  const label = prefix ? `${prefix}  ${timeStr}` : timeStr;
+
+  const rawSize = parseInt(document.getElementById('fontSize').value);
+  const size = Math.max(16, Math.round(cvs.width * rawSize / 800));
+  cx.font = `bold ${size}px -apple-system, Arial, sans-serif`;
+
+  const pad = Math.round(size * 0.5);
+  const tw = cx.measureText(label).width;
+  const bx = cvs.width - tw - pad * 2 - 20;
+  const by = cvs.height - size - pad * 2 - 20;
+  const bw = tw + pad * 2;
+  const bh = size + pad * 2;
+
+  const bgHex = document.getElementById('bgColor').value;
+  const opacity = parseFloat(document.getElementById('bgOpacity').value);
+  const r = parseInt(bgHex.slice(1,3),16);
+  const g = parseInt(bgHex.slice(3,5),16);
+  const b = parseInt(bgHex.slice(5,7),16);
+
+  cx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+  if (cx.roundRect) {
+    cx.beginPath();
+    cx.roundRect(bx, by, bw, bh, Math.round(size * 0.3));
+    cx.fill();
+  } else {
+    cx.fillRect(bx, by, bw, bh);
+  }
+
+  cx.fillStyle = document.getElementById('textColor').value;
+  cx.textBaseline = 'top';
+  cx.fillText(label, bx + pad, by + pad);
+}
+
+function loadAndDraw(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      applyWatermark(canvas, ctx, img, file);
+      previewWrap.style.display = 'block';
+      actionArea.style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleFiles(files) {
+  if (!files.length) return;
+  currentFiles = Array.from(files);
+  loadAndDraw(currentFiles[0]);
+  if (currentFiles.length > 1) {
+    batchNote.textContent = `共 ${currentFiles.length} 张，点保存后将逐张下载`;
+  } else {
+    batchNote.textContent = '';
+  }
+}
+
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+document.getElementById('btnRedo').addEventListener('click', () => {
+  currentFiles = [];
+  previewWrap.style.display = 'none';
+  actionArea.style.display = 'none';
+  batchNote.textContent = '';
+  fileInput.value = '';
+});
+
+async function saveOne(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const cx2 = c.getContext('2d');
+        applyWatermark(c, cx2, img, file);
+        const name = file.name.replace(/\.[^.]+$/, '') + '_水印.jpg';
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/jpeg', 0.95);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(resolve, 400);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('btnDl').addEventListener('click', async function() {
+  this.disabled = true;
+  const orig = this.textContent;
+  for (let i = 0; i < currentFiles.length; i++) {
+    this.textContent = currentFiles.length > 1
+      ? `保存中 ${i+1}/${currentFiles.length}...`
+      : '保存中...';
+    await saveOne(currentFiles[i]);
+  }
+  this.disabled = false;
+  this.textContent = orig;
+});
+</script>
+</body>
+</html>
